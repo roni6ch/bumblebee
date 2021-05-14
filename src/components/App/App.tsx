@@ -10,7 +10,6 @@ import s from './App.scss';
 
 import {
   Button,
-  RadioGroup,
   Divider,
   Layout,
   ToggleSwitch,
@@ -23,14 +22,24 @@ import {
   Card,
   Radio,
   Cell,
+  CardFolderTabs,
+  EmptyState,
+  TextButton,
 } from 'wix-style-react';
-// import ChevronRight from 'wix-ui-icons-common/ChevronRight';
+import Delete from 'wix-ui-icons-common/Delete';
+import OpenModal from 'wix-ui-icons-common/OpenModal';
+import ContentFilter from 'wix-ui-icons-common/ContentFilter';
+import More from 'wix-ui-icons-common/More';
+import ChangeOrder from 'wix-ui-icons-common/ChangeOrder';
+import FaceGrining from 'wix-ui-icons-common/FaceGrining';
+import FaceDisapointed from 'wix-ui-icons-common/FaceDisapointed';
 
 export function App() {
   const [renderModeVal, setRenderModeVal] = useState<RenderModes>();
   const [jsDisable, setJsDisable] = useState<string>('');
   const [textToParse, setTextToParse] = useState<string>('');
   const [parseURLParams, setParseURLParams] = useState([]);
+  const [activeTabId, setActiveTabId] = useState<string>('1');
 
   useEffect(() => {
     parseURL();
@@ -40,7 +49,7 @@ export function App() {
     };
     chrome.tabs &&
       chrome.tabs.query(queryInfo, (tabs) => {
-        setTextToParse(tabs[0].url ?? '');
+        setTextToParse(decodeURIComponent(tabs[0].url ?? ''));
         const contentSettings = chrome.contentSettings.javascript;
         contentSettings.get(
           { primaryUrl: tabs[0].url ?? '' },
@@ -49,6 +58,7 @@ export function App() {
           },
         );
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sendMessage = (chromeMessage: ChromeMessage) => {
@@ -164,11 +174,17 @@ export function App() {
         />
         <div className={s.encodeDecodeButtons} style={{ marginTop: '10px' }}>
           <Layout cols={2} gap={2}>
-            <Button onClick={() => decodeEncode(Messages.Decode)}>
-              base 64 Decode
+            <Button
+              onClick={() => decodeEncode(Messages.Decode)}
+              prefixIcon={<FaceGrining />}
+            >
+              Decode
             </Button>
-            <Button onClick={() => decodeEncode(Messages.Encode)}>
-              base 64 Encode
+            <Button
+              onClick={() => decodeEncode(Messages.Encode)}
+              prefixIcon={<FaceDisapointed />}
+            >
+              Encode
             </Button>
           </Layout>
         </div>
@@ -178,8 +194,8 @@ export function App() {
   const parseURLParamsComponent = () =>
     parseURLParams.map((param: any) => {
       return (
-        <>
-          <Layout gap={10} key={param[0]}>
+        <div key={param[0]}>
+          <Layout gap={10}>
             <Cell span={4}>
               <Box>
                 <Text>{decodeURIComponent(param[0])}</Text>
@@ -201,53 +217,107 @@ export function App() {
               </Box>
             </Cell>
           </Layout>
-          <Divider />
-        </>
+          <Divider></Divider>
+        </div>
       );
     });
   const otherOptionsComponent = () => (
-    <>
-      <Layout cols={4} gap={2}>
-        <FormField id="disableJS" label="Disable JS" labelPlacement="right">
-          <ToggleSwitch
-            id="disableJS"
-            skin="error"
-            checked={isJSDisabled()}
-            onChange={() => disableJS()}
-          />
-        </FormField>
+    <Layout cols={3} gap={2}>
+      <FormField
+        id="disableJS"
+        label="Disable JS"
+        labelPlacement="right"
+        stretchContent={false}
+      >
+        <ToggleSwitch
+          id="disableJS"
+          skin="error"
+          checked={isJSDisabled()}
+          onChange={() => disableJS()}
+        />
+      </FormField>
 
-        <Button onClick={clearCache}>Clean Storage</Button>
-      </Layout>
-      <Divider />
-    </>
+      <Button
+        priority="secondary"
+        onClick={() => clearCache()}
+        size="small"
+        fullWidth={false}
+        prefixIcon={<Delete />}
+      >
+        Storage
+      </Button>
+    </Layout>
   );
 
   return (
     <Card>
-      <Card.Header title="BumbleBee" subtitle="Bookings develop helper" />
+      <Card.Header title="BumbleBee" subtitle="Bookings develope helper" />
       <Card.Divider />
+
       <Accordion
         size="small"
+        transitionSpeed="fast"
         items={[
           accordionItemBuilder({
-            title: 'Render Modes',
+            title: `Render Modes`,
+            icon: <OpenModal />,
+            collapseLabel: 'Less',
+            expandLabel: 'See More',
             children: renderModesComponent(),
           }),
           accordionItemBuilder({
-            title: 'Encode/Decode',
+            title: 'Base 64',
+            icon: <ChangeOrder />,
+            collapseLabel: 'Less',
+            expandLabel: 'See More',
             children: encodeDecodeComponent(),
           }),
           accordionItemBuilder({
-            title: 'parse URL params',
-            children: parseURLParamsComponent(),
+            title: 'Parse URL params',
+            icon: <ContentFilter />,
+            collapseLabel: 'Less',
+            expandLabel: 'See More',
+            children: (
+              <div style={{ height: '200px', overflowY: 'scroll' }}>
+                {parseURLParamsComponent()}
+              </div>
+            ),
           }),
           accordionItemBuilder({
-            title: 'other options',
+            title: 'Other',
+            icon: <More />,
+            collapseLabel: 'Less',
+            expandLabel: 'See More',
             children: otherOptionsComponent(),
           }),
         ]}
       />
+      {/* <CardFolderTabs
+        activeId={activeTabId}
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        onTabChange={(activeTabId: string) => setActiveTabId(activeTabId)}
+      >
+        <CardFolderTabs.Tab id="1" name="Render Modes">
+          <Card>
+            <Card.Content>{renderModesComponent()}</Card.Content>
+          </Card>
+        </CardFolderTabs.Tab>
+        <CardFolderTabs.Tab id="2" name="Base 64">
+          <Card>
+            <Card.Content>{encodeDecodeComponent()}</Card.Content>
+          </Card>
+        </CardFolderTabs.Tab>
+        <CardFolderTabs.Tab id="3" name="Parse URL params">
+          <Card>
+            <Card.Content>{parseURLParamsComponent()}</Card.Content>
+          </Card>
+        </CardFolderTabs.Tab>
+        <CardFolderTabs.Tab id="4" name="Other">
+          <Card>
+            <Card.Content>{otherOptionsComponent()}</Card.Content>
+          </Card>
+        </CardFolderTabs.Tab>
+      </CardFolderTabs> */}
     </Card>
   );
 }

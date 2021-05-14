@@ -33,20 +33,6 @@ const messagesFromReactAppListener = (
           type: Messages.ClearCache,
         });
         break;
-      // case Messages.Decode:
-      // case Messages.Encode:
-      //   chromeContentMessage = {
-      //     from: Sender.Content,
-      //     payload: { type: chromeMessage.type, url },
-      //   };
-      //   chrome.runtime.sendMessage(chromeContentMessage, (result) => {
-      //     response({
-      //       from: Sender.Content,
-      //       payload: result.payload,
-      //       type: chromeMessage.type,
-      //     });
-      //   });
-      //   break;
       case Messages.ParseURL:
         const urlParams = Object.entries(
           JSON.parse(
