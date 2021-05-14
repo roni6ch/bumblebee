@@ -1,0 +1,35 @@
+{
+  "name": "Bumblebee",
+  "description": "Easy Develope helper",
+  "version": "1.0",
+  "manifest_version": 2,
+  "browser_action": {
+    "default_popup": "./statics/popup.html",
+    "default_title": "Easy Develope helper"
+  },
+  "icons": {
+    "128": "./statics/assets/logo192.png"
+  },
+  "permissions": [
+    "activeTab",
+    "contentSettings",
+    "background",
+    "<all_urls>",
+    "tabs",
+    "webRequest"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*", "https://*.wix.com/dashboard/*"],
+      "js": ["./statics/content.bundle.js"],
+      "all_frames": false,
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "scripts": [
+      "./statics/background.bundle.js"
+    ],
+    "persistent": true
+  }
+}
