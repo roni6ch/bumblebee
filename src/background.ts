@@ -5,6 +5,7 @@ const getJSSettings = (jsParamsResponse: { setting: JSSettingsDetails }) => {
     ? JSSettingsDetails.BLOCK
     : JSSettingsDetails.ALLOW;
 };
+
 const disableJS = (
   url: string,
   chromeMessageResponse: (chromeMessageResponse: ChromeMessage) => void,

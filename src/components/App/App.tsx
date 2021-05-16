@@ -6,6 +6,7 @@ import {
   Sender,
   RenderModes,
   SiteDetails,
+  TabTitles,
 } from '../../types';
 import s from './App.scss';
 
@@ -40,46 +41,41 @@ import Database from 'wix-ui-icons-common/Database';
 
 export function App() {
   const [tabId, setTabId] = useState<number>(0);
-  const [tabUrl, setTabUrl] = useState<string>('');
-  const [siteDetails, setSiteDetails] = useState<SiteDetails>({
-    metaSiteID: '',
-    siteID: '',
+  const [queryInfo] = useState<chrome.tabs.QueryInfo>({
+    active: true,
+    currentWindow: true,
   });
   const [renderModeVal, setRenderModeVal] = useState<RenderModes>();
   const [jsDisable, setJsDisable] = useState<string>('');
   const [textToParse, setTextToParse] = useState<string>('');
-  const [parseURLParams, setParseURLParams] = useState([]);
-  const [activeTabId, setActiveTabId] = useState<string>('1');
+  const [parseURLParams, setParseURLParams] = useState<string[]>([]);
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
+  const [siteDetails, setSiteDetails] = useState<SiteDetails>({
+    metaSiteID: '',
+    siteID: '',
+  });
+  // const [activeTabId, setActiveTabId] = useState<string>('1');
 
   useEffect(() => {
-    parseURL();
-    getSiteDetails();
-    checkIsMobileView();
-    const queryInfo: chrome.tabs.QueryInfo = {
-      active: true,
-      currentWindow: true,
-    };
-    chrome.tabs &&
-      chrome.tabs.query(queryInfo, (tabs) => {
-        setTabId(tabs[0].id ?? 0);
-        setTabUrl(tabs[0].url ?? '0');
-        setTextToParse(decodeURIComponent(tabs[0].url ?? ''));
-        const contentSettings = chrome.contentSettings.javascript;
-        contentSettings.get(
-          { primaryUrl: tabs[0].url ?? '' },
-          (jsParamsResponse) => {
-            setJsDisable(jsParamsResponse.setting);
-          },
-        );
-      });
+    sendMessage({ type: Messages.ParseURL });
+    sendMessage({ type: Messages.SiteDetails });
+    sendMessage({ type: Messages.IsMobileView });
+    chrome.tabs?.query(queryInfo, (tabs) => {
+      const tabUrl = tabs[0].url ?? '';
+      setTabId(tabs[0].id ?? 0);
+      setTextToParse(decodeURIComponent(tabUrl));
+      const contentSettings = chrome.contentSettings.javascript;
+      contentSettings.get({ primaryUrl: tabUrl }, (jsParamsResponse) =>
+        setJsDisable(jsParamsResponse.setting),
+      );
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sendMessage = (chromeMessage: ChromeMessage) => {
-    const queryInfo: chrome.tabs.QueryInfo = {
-      active: true,
-      currentWindow: true,
+  const sendMessage = (payload: any) => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload,
     };
     chrome.tabs?.query(queryInfo, (tabs) => {
       const currentTabId = tabs[0].id;
@@ -92,28 +88,23 @@ export function App() {
               case Messages.IsMobileView:
                 setIsMobileView(response.payload);
                 break;
-              case Messages.GetConfig:
-                console.log('GetConfig', response);
-                break;
-              case Messages.Debug:
-                console.log('response', response);
-                break;
-              case Messages.MetaSiteID:
+              case Messages.SiteDetails:
                 setSiteDetails(response.payload);
                 break;
               case Messages.DisableJS:
                 setJsDisable(response.payload);
                 break;
-              case Messages.Decode:
-              case Messages.Encode:
-                break;
               case Messages.ParseURL:
                 setParseURLParams(response.payload);
                 break;
-              case Messages.ClearCache:
-                break;
-              case Messages.renderMode:
+              case Messages.RenderMode:
                 setRenderModeVal(response.payload);
+                break;
+              case Messages.GetConfig:
+                console.log('GetConfig', response);
+                break;
+              case Messages.Debug:
+                console.log('response', response);
                 break;
             }
           },
@@ -121,80 +112,13 @@ export function App() {
     });
   };
 
-  const clearCache = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.ClearCache },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const renderMode = (mode: RenderModes) => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.renderMode, renderMode: mode },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const disableJS = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.DisableJS },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const getSiteDetails = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.MetaSiteID },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const checkIsMobileView = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.IsMobileView },
-    };
-    sendMessage(chromeMessage);
-  };
-
   const toggleMobileView = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: {
-        type: Messages.ToggleMobileView,
-        isMobileView: isMobileView ? false : true,
-      },
-    };
-    setIsMobileView(isMobileView ? false : true);
-    sendMessage(chromeMessage);
-  };
-
-  const debuggerHandle = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.Debug, tabId },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const getConfig = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.GetConfig, tabId },
-    };
-    sendMessage(chromeMessage);
-  };
-
-  const parseURL = () => {
-    const chromeMessage: ChromeMessage = {
-      from: Sender.React,
-      payload: { type: Messages.ParseURL },
-    };
-    sendMessage(chromeMessage);
+    const toggleMobileViewValue = isMobileView ? false : true;
+    setIsMobileView(toggleMobileViewValue);
+    sendMessage({
+      type: Messages.ToggleMobileView,
+      isMobileView: toggleMobileViewValue,
+    });
   };
 
   const decodeEncode = (decodeEncodeStr: Messages.Decode | Messages.Encode) => {
@@ -209,33 +133,55 @@ export function App() {
 
   const renderModesComponent = () => {
     return (
-      <Layout cols={2} gap={10}>
-        <Radio
-          label={RenderModes.CSRBolt}
-          checked={renderModeVal === RenderModes.CSRBolt}
-          onChange={() => renderMode(RenderModes.CSRBolt)}
-        />
-        <Radio
-          label={RenderModes.CSRThunderBolt}
-          checked={renderModeVal === RenderModes.CSRThunderBolt}
-          onChange={() => renderMode(RenderModes.CSRThunderBolt)}
-        />
-        <Radio
-          label={RenderModes.Bolt}
-          checked={renderModeVal === RenderModes.Bolt}
-          onChange={() => renderMode(RenderModes.Bolt)}
-        />
-        <Radio
-          label={RenderModes.ThunderBolt}
-          checked={renderModeVal === RenderModes.ThunderBolt}
-          onChange={() => renderMode(RenderModes.ThunderBolt)}
-        />
-      </Layout>
+      <div className="tracking-in-expand">
+        <Layout cols={2} gap={10}>
+          <Radio
+            label={RenderModes.CSRBolt}
+            checked={renderModeVal === RenderModes.CSRBolt}
+            onChange={() =>
+              sendMessage({
+                type: Messages.RenderMode,
+                renderMode: RenderModes.CSRBolt,
+              })
+            }
+          />
+          <Radio
+            label={RenderModes.CSRThunderBolt}
+            checked={renderModeVal === RenderModes.CSRThunderBolt}
+            onChange={() =>
+              sendMessage({
+                type: Messages.RenderMode,
+                renderMode: RenderModes.CSRThunderBolt,
+              })
+            }
+          />
+          <Radio
+            label={RenderModes.Bolt}
+            checked={renderModeVal === RenderModes.Bolt}
+            onChange={() =>
+              sendMessage({
+                type: Messages.RenderMode,
+                renderMode: RenderModes.Bolt,
+              })
+            }
+          />
+          <Radio
+            label={RenderModes.ThunderBolt}
+            checked={renderModeVal === RenderModes.ThunderBolt}
+            onChange={() =>
+              sendMessage({
+                type: Messages.RenderMode,
+                renderMode: RenderModes.ThunderBolt,
+              })
+            }
+          />
+        </Layout>
+      </div>
     );
   };
   const encodeDecodeComponent = () => {
     return (
-      <>
+      <div className="jello-horizontal">
         <InputArea
           minHeight="150px"
           resizable={true}
@@ -259,7 +205,7 @@ export function App() {
             </Button>
           </Layout>
         </div>
-      </>
+      </div>
     );
   };
   const parseURLParamsComponent = () =>
@@ -297,66 +243,110 @@ export function App() {
       <Text skin="error">Theres no query parmeters!</Text>
     );
   const otherOptionsComponent = () => (
-    <Layout cols={3} gap={2}>
-      <FormField
-        id="disableJS"
-        label="Disable JS"
-        labelPlacement="right"
-        stretchContent={false}
-      >
-        <ToggleSwitch
+    <div className="slide-in-blurred-top">
+      <Layout cols={3} gap={2}>
+        <FormField
           id="disableJS"
-          skin="error"
-          checked={isJSDisabled()}
-          onChange={() => disableJS()}
-        />
-      </FormField>
-      <FormField
-        id="mobileView"
-        label="Mobile View"
-        labelPlacement="right"
-        stretchContent={false}
-      >
-        <ToggleSwitch
+          label="Disable JS"
+          labelPlacement="right"
+          stretchContent={false}
+        >
+          <ToggleSwitch
+            id="disableJS"
+            skin="error"
+            checked={isJSDisabled()}
+            onChange={() => sendMessage({ type: Messages.DisableJS })}
+          />
+        </FormField>
+        <FormField
           id="mobileView"
-          checked={isMobileView}
-          onChange={() => toggleMobileView()}
-        />
-      </FormField>
+          label="Mobile View"
+          labelPlacement="right"
+          stretchContent={false}
+        >
+          <ToggleSwitch
+            id="mobileView"
+            checked={isMobileView}
+            onChange={() => toggleMobileView()}
+          />
+        </FormField>
 
-      <Button
-        priority="secondary"
-        onClick={() => clearCache()}
-        size="small"
-        fullWidth={false}
-        prefixIcon={<Delete />}
-      >
-        Storage
-      </Button>
-    </Layout>
+        <Button
+          priority="secondary"
+          onClick={() => sendMessage({ type: Messages.ClearCache })}
+          size="small"
+          fullWidth={false}
+          prefixIcon={<Delete />}
+        >
+          Storage
+        </Button>
+      </Layout>
+    </div>
   );
-  const underConstruction = () => (
-    <Layout cols={3} gap={2}>
-      <Button
-        priority="secondary"
-        onClick={() => debuggerHandle()}
-        size="small"
-        fullWidth={false}
-        prefixIcon={<SiteSearch />}
-      >
-        Debugger
-      </Button>
-      <Button
-        priority="secondary"
-        onClick={() => getConfig()}
-        size="small"
-        fullWidth={false}
-        prefixIcon={<Database />}
-      >
-        Get Config
-      </Button>
-    </Layout>
+  const underConstructionComponent = () => (
+    <div>
+      <Layout cols={3} gap={2}>
+        <Button
+          className="roll-in-blurred-left"
+          priority="secondary"
+          onClick={() => sendMessage({ type: Messages.Debug, tabId })}
+          size="small"
+          fullWidth={false}
+          prefixIcon={<SiteSearch />}
+        >
+          Debugger
+        </Button>
+        <Button
+          className="roll-in-blurred-left"
+          priority="secondary"
+          onClick={() => sendMessage({ type: Messages.GetConfig, tabId })}
+          size="small"
+          fullWidth={false}
+          prefixIcon={<Database />}
+        >
+          Get Config
+        </Button>
+      </Layout>
+    </div>
   );
+
+  const componentsItems = [
+    {
+      title: TabTitles.RenderMode,
+      icon: <OpenModal />,
+      children: renderModesComponent(),
+    },
+    {
+      title: TabTitles.Base64,
+      icon: <ChangeOrder />,
+      children: encodeDecodeComponent(),
+    },
+    {
+      title: TabTitles.ParseURLParams,
+      icon: <ContentFilter />,
+      children: (
+        <div
+          className="text-focus-in"
+          style={{
+            maxHeight: parseURLParams.length > 0 ? '200px' : '30px',
+            overflowY: 'scroll',
+          }}
+        >
+          {parseURLParamsComponent()}
+        </div>
+      ),
+    },
+    {
+      title: TabTitles.Other,
+      icon: <More />,
+      children: otherOptionsComponent(),
+    },
+    {
+      title: TabTitles.UnderConstruction,
+      icon: <Toolbox />,
+      children: underConstructionComponent(),
+    },
+  ];
 
   return (
     <Card>
@@ -365,56 +355,19 @@ export function App() {
         subtitle={`Bookings develop helper \nSite ID: ${siteDetails.siteID} \nMeta Site ID: ${siteDetails.metaSiteID}`}
       />
       <Card.Divider />
-      <Accordion
-        size="small"
-        transitionSpeed="fast"
-        items={[
-          accordionItemBuilder({
-            title: `Render Modes`,
-            icon: <OpenModal />,
-            collapseLabel: 'Less',
-            expandLabel: 'See More',
-            children: renderModesComponent(),
-          }),
-          accordionItemBuilder({
-            title: 'Base 64',
-            icon: <ChangeOrder />,
-            collapseLabel: 'Less',
-            expandLabel: 'See More',
-            children: encodeDecodeComponent(),
-          }),
-          accordionItemBuilder({
-            title: 'Parse URL params',
-            icon: <ContentFilter />,
-            collapseLabel: 'Less',
-            expandLabel: 'See More',
-            children: (
-              <div
-                style={{
-                  maxHeight: parseURLParams.length > 0 ? '200px' : '30px',
-                  overflowY: 'scroll',
-                }}
-              >
-                {parseURLParamsComponent()}
-              </div>
-            ),
-          }),
-          accordionItemBuilder({
-            title: 'Other',
-            icon: <More />,
-            collapseLabel: 'Less',
-            expandLabel: 'See More',
-            children: otherOptionsComponent(),
-          }),
-          accordionItemBuilder({
-            title: 'Under construction',
-            icon: <Toolbox />,
-            collapseLabel: 'Less',
-            expandLabel: 'See More',
-            children: underConstruction(),
-          }),
-        ]}
-      />
+      <div style={{ overflow: 'hidden' }}>
+        <Accordion
+          size="small"
+          transitionSpeed="fast"
+          items={componentsItems.map((componentItem) => {
+            return {
+              ...componentItem,
+              collapseLabel: 'Less',
+              expandLabel: 'See More',
+            };
+          })}
+        />
+      </div>
       {/* <CardFolderTabs
         activeId={activeTabId}
         // eslint-disable-next-line @typescript-eslint/no-shadow

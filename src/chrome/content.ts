@@ -23,7 +23,7 @@ const messagesFromReactAppListener = (
         searchParams.set('showMobileView', payload.isMobileView);
         window.location.search = searchParams.toString();
         break;
-      case Messages.MetaSiteID:
+      case Messages.SiteDetails:
         // JSON.parse(document.querySelector('#wix-viewer-model').text)
         const metaSiteID = document
           .querySelector('meta[http-equiv="X-Wix-Meta-Site-Id"]')
@@ -38,34 +38,7 @@ const messagesFromReactAppListener = (
         response({
           from: Sender.Content,
           payload: siteDetails,
-          type: Messages.MetaSiteID,
-        });
-        break;
-      case Messages.Debug:
-        chromeContentMessage = {
-          from: Sender.Content,
-          payload: { type: Messages.Debug, url, tabId: payload.tabId },
-        };
-        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
-          response({
-            from: Sender.Content,
-            payload: result.payload,
-            type: Messages.Debug,
-          });
-        });
-
-        break;
-      case Messages.GetConfig:
-        chromeContentMessage = {
-          from: Sender.Content,
-          payload: { type: Messages.GetConfig, url, tabId: payload.tabId },
-        };
-        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
-          response({
-            from: Sender.Content,
-            payload: result.payload,
-            type: Messages.GetConfig,
-          });
+          type: Messages.SiteDetails,
         });
         break;
       case Messages.DisableJS:
@@ -108,7 +81,7 @@ const messagesFromReactAppListener = (
           type: Messages.ParseURL,
         });
         break;
-      case Messages.renderMode:
+      case Messages.RenderMode:
         searchParams.delete('ssrOnly');
         searchParams.delete('ssrWarmupOnly');
         searchParams.delete('petri_ovr');
@@ -137,7 +110,34 @@ const messagesFromReactAppListener = (
         response({
           from: Sender.Content,
           payload: payload.renderMode,
-          type: Messages.renderMode,
+          type: Messages.RenderMode,
+        });
+        break;
+      case Messages.Debug:
+        chromeContentMessage = {
+          from: Sender.Content,
+          payload: { type: Messages.Debug, url, tabId: payload.tabId },
+        };
+        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
+          response({
+            from: Sender.Content,
+            payload: result.payload,
+            type: Messages.Debug,
+          });
+        });
+
+        break;
+      case Messages.GetConfig:
+        chromeContentMessage = {
+          from: Sender.Content,
+          payload: { type: Messages.GetConfig, url, tabId: payload.tabId },
+        };
+        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
+          response({
+            from: Sender.Content,
+            payload: result.payload,
+            type: Messages.GetConfig,
+          });
         });
         break;
     }

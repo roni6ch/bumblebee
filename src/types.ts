@@ -6,14 +6,14 @@ export enum Sender {
 
 export enum Messages {
   ClearCache,
-  renderMode,
+  RenderMode,
   DisableJS,
   ParseURL,
   Decode,
   Encode,
   Debug,
   GetConfig,
-  MetaSiteID,
+  SiteDetails,
   ToggleMobileView,
   IsMobileView,
 }
@@ -23,6 +23,14 @@ export enum RenderModes {
   CSRThunderBolt = 'CSR ThunderBolt',
   Bolt = 'SSR Bolt',
   ThunderBolt = 'SSR ThunderBolt',
+}
+
+export enum TabTitles {
+  RenderMode = 'Render Modes',
+  Base64 = 'Base 64',
+  ParseURLParams = 'Parse URL params',
+  Other = 'Other',
+  UnderConstruction = 'Under construction',
 }
 
 export interface ChromeMessage {
