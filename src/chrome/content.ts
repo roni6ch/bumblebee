@@ -1,3 +1,4 @@
+declare const window: any;
 import { ChromeMessage, Messages, Sender, RenderModes } from '../types';
 
 const messagesFromReactAppListener = (
@@ -9,7 +10,64 @@ const messagesFromReactAppListener = (
   let chromeContentMessage: ChromeMessage;
   if (sender.id === chrome.runtime.id && chromeMessage.from === Sender.React) {
     const payload = chromeMessage.payload;
+    const searchParams = new URLSearchParams(window.location.search);
     switch (payload.type) {
+      case Messages.IsMobileView:
+        response({
+          from: Sender.Content,
+          payload: searchParams.get('showMobileView') === 'true',
+          type: Messages.IsMobileView,
+        });
+        break;
+      case Messages.ToggleMobileView:
+        searchParams.set('showMobileView', payload.isMobileView);
+        window.location.search = searchParams.toString();
+        break;
+      case Messages.MetaSiteID:
+        // JSON.parse(document.querySelector('#wix-viewer-model').text)
+        const metaSiteID = document
+          .querySelector('meta[http-equiv="X-Wix-Meta-Site-Id"]')
+          .getAttribute('content');
+        const siteID = document
+          .querySelector('meta[http-equiv="X-Wix-Application-Instance-Id"]')
+          .getAttribute('content');
+        const siteDetails = {
+          metaSiteID,
+          siteID,
+        };
+        response({
+          from: Sender.Content,
+          payload: siteDetails,
+          type: Messages.MetaSiteID,
+        });
+        break;
+      case Messages.Debug:
+        chromeContentMessage = {
+          from: Sender.Content,
+          payload: { type: Messages.Debug, url, tabId: payload.tabId },
+        };
+        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
+          response({
+            from: Sender.Content,
+            payload: result.payload,
+            type: Messages.Debug,
+          });
+        });
+
+        break;
+      case Messages.GetConfig:
+        chromeContentMessage = {
+          from: Sender.Content,
+          payload: { type: Messages.GetConfig, url, tabId: payload.tabId },
+        };
+        chrome.runtime.sendMessage(chromeContentMessage, (result) => {
+          response({
+            from: Sender.Content,
+            payload: result.payload,
+            type: Messages.GetConfig,
+          });
+        });
+        break;
       case Messages.DisableJS:
         chromeContentMessage = {
           from: Sender.Content,
@@ -51,7 +109,6 @@ const messagesFromReactAppListener = (
         });
         break;
       case Messages.renderMode:
-        const searchParams = new URLSearchParams(window.location.search);
         searchParams.delete('ssrOnly');
         searchParams.delete('ssrWarmupOnly');
         searchParams.delete('petri_ovr');

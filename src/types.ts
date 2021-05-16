@@ -11,6 +11,11 @@ export enum Messages {
   ParseURL,
   Decode,
   Encode,
+  Debug,
+  GetConfig,
+  MetaSiteID,
+  ToggleMobileView,
+  IsMobileView,
 }
 
 export enum RenderModes {
@@ -24,6 +29,11 @@ export interface ChromeMessage {
   from: Sender;
   payload: any;
   type?: Messages;
+}
+
+export interface SiteDetails {
+  metaSiteID: string;
+  siteID: string;
 }
 
 export enum JSSettingsDetails {

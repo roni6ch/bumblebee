@@ -5,6 +5,7 @@ import {
   Messages,
   Sender,
   RenderModes,
+  SiteDetails,
 } from '../../types';
 import s from './App.scss';
 
@@ -33,22 +34,36 @@ import More from 'wix-ui-icons-common/More';
 import ChangeOrder from 'wix-ui-icons-common/ChangeOrder';
 import FaceGrining from 'wix-ui-icons-common/FaceGrining';
 import FaceDisapointed from 'wix-ui-icons-common/FaceDisapointed';
+import SiteSearch from 'wix-ui-icons-common/SiteSearch';
+import Toolbox from 'wix-ui-icons-common/Toolbox';
+import Database from 'wix-ui-icons-common/Database';
 
 export function App() {
+  const [tabId, setTabId] = useState<number>(0);
+  const [tabUrl, setTabUrl] = useState<string>('');
+  const [siteDetails, setSiteDetails] = useState<SiteDetails>({
+    metaSiteID: '',
+    siteID: '',
+  });
   const [renderModeVal, setRenderModeVal] = useState<RenderModes>();
   const [jsDisable, setJsDisable] = useState<string>('');
   const [textToParse, setTextToParse] = useState<string>('');
   const [parseURLParams, setParseURLParams] = useState([]);
   const [activeTabId, setActiveTabId] = useState<string>('1');
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
   useEffect(() => {
     parseURL();
+    getSiteDetails();
+    checkIsMobileView();
     const queryInfo: chrome.tabs.QueryInfo = {
       active: true,
       currentWindow: true,
     };
     chrome.tabs &&
       chrome.tabs.query(queryInfo, (tabs) => {
+        setTabId(tabs[0].id ?? 0);
+        setTabUrl(tabs[0].url ?? '0');
         setTextToParse(decodeURIComponent(tabs[0].url ?? ''));
         const contentSettings = chrome.contentSettings.javascript;
         contentSettings.get(
@@ -73,7 +88,19 @@ export function App() {
           currentTabId,
           chromeMessage,
           (response: ChromeMessage) => {
-            switch (response.type) {
+            switch (response?.type) {
+              case Messages.IsMobileView:
+                setIsMobileView(response.payload);
+                break;
+              case Messages.GetConfig:
+                console.log('GetConfig', response);
+                break;
+              case Messages.Debug:
+                console.log('response', response);
+                break;
+              case Messages.MetaSiteID:
+                setSiteDetails(response.payload);
+                break;
               case Messages.DisableJS:
                 setJsDisable(response.payload);
                 break;
@@ -114,6 +141,50 @@ export function App() {
     const chromeMessage: ChromeMessage = {
       from: Sender.React,
       payload: { type: Messages.DisableJS },
+    };
+    sendMessage(chromeMessage);
+  };
+
+  const getSiteDetails = () => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload: { type: Messages.MetaSiteID },
+    };
+    sendMessage(chromeMessage);
+  };
+
+  const checkIsMobileView = () => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload: { type: Messages.IsMobileView },
+    };
+    sendMessage(chromeMessage);
+  };
+
+  const toggleMobileView = () => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload: {
+        type: Messages.ToggleMobileView,
+        isMobileView: isMobileView ? false : true,
+      },
+    };
+    setIsMobileView(isMobileView ? false : true);
+    sendMessage(chromeMessage);
+  };
+
+  const debuggerHandle = () => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload: { type: Messages.Debug, tabId },
+    };
+    sendMessage(chromeMessage);
+  };
+
+  const getConfig = () => {
+    const chromeMessage: ChromeMessage = {
+      from: Sender.React,
+      payload: { type: Messages.GetConfig, tabId },
     };
     sendMessage(chromeMessage);
   };
@@ -192,35 +263,39 @@ export function App() {
     );
   };
   const parseURLParamsComponent = () =>
-    parseURLParams.map((param: any) => {
-      return (
-        <div key={param[0]}>
-          <Layout gap={10}>
-            <Cell span={4}>
-              <Box>
-                <Text>{decodeURIComponent(param[0])}</Text>
-              </Box>
-            </Cell>
-            <Cell span={8}>
-              <Box>
-                <Text>
-                  {param[0] === 'petri_ovr'
-                    ? decodeURIComponent(param[1])
-                        .split(';')
-                        .map((petriParam: string) => (
-                          <p key={petriParam} data-at={petriParam}>
-                            {decodeURIComponent(petriParam)}
-                          </p>
-                        ))
-                    : decodeURIComponent(param[1])}
-                </Text>
-              </Box>
-            </Cell>
-          </Layout>
-          <Divider></Divider>
-        </div>
-      );
-    });
+    parseURLParams.length > 0 ? (
+      parseURLParams.map((param: any) => {
+        return (
+          <div key={param[0]}>
+            <Layout gap={10}>
+              <Cell span={4}>
+                <Box>
+                  <Text>{decodeURIComponent(param[0])}</Text>
+                </Box>
+              </Cell>
+              <Cell span={8}>
+                <Box>
+                  <Text>
+                    {param[0] === 'petri_ovr'
+                      ? decodeURIComponent(param[1])
+                          .split(';')
+                          .map((petriParam: string) => (
+                            <p key={petriParam} data-at={petriParam}>
+                              {decodeURIComponent(petriParam)}
+                            </p>
+                          ))
+                      : decodeURIComponent(param[1])}
+                  </Text>
+                </Box>
+              </Cell>
+            </Layout>
+            <Divider></Divider>
+          </div>
+        );
+      })
+    ) : (
+      <Text skin="error">Theres no query parmeters!</Text>
+    );
   const otherOptionsComponent = () => (
     <Layout cols={3} gap={2}>
       <FormField
@@ -236,6 +311,18 @@ export function App() {
           onChange={() => disableJS()}
         />
       </FormField>
+      <FormField
+        id="mobileView"
+        label="Mobile View"
+        labelPlacement="right"
+        stretchContent={false}
+      >
+        <ToggleSwitch
+          id="mobileView"
+          checked={isMobileView}
+          onChange={() => toggleMobileView()}
+        />
+      </FormField>
 
       <Button
         priority="secondary"
@@ -248,12 +335,36 @@ export function App() {
       </Button>
     </Layout>
   );
+  const underConstruction = () => (
+    <Layout cols={3} gap={2}>
+      <Button
+        priority="secondary"
+        onClick={() => debuggerHandle()}
+        size="small"
+        fullWidth={false}
+        prefixIcon={<SiteSearch />}
+      >
+        Debugger
+      </Button>
+      <Button
+        priority="secondary"
+        onClick={() => getConfig()}
+        size="small"
+        fullWidth={false}
+        prefixIcon={<Database />}
+      >
+        Get Config
+      </Button>
+    </Layout>
+  );
 
   return (
     <Card>
-      <Card.Header title="BumbleBee" subtitle="Bookings develope helper" />
+      <Card.Header
+        title="BumbleBee"
+        subtitle={`Bookings develop helper \nSite ID: ${siteDetails.siteID} \nMeta Site ID: ${siteDetails.metaSiteID}`}
+      />
       <Card.Divider />
-
       <Accordion
         size="small"
         transitionSpeed="fast"
@@ -278,7 +389,12 @@ export function App() {
             collapseLabel: 'Less',
             expandLabel: 'See More',
             children: (
-              <div style={{ height: '200px', overflowY: 'scroll' }}>
+              <div
+                style={{
+                  maxHeight: parseURLParams.length > 0 ? '200px' : '30px',
+                  overflowY: 'scroll',
+                }}
+              >
                 {parseURLParamsComponent()}
               </div>
             ),
@@ -289,6 +405,13 @@ export function App() {
             collapseLabel: 'Less',
             expandLabel: 'See More',
             children: otherOptionsComponent(),
+          }),
+          accordionItemBuilder({
+            title: 'Under construction',
+            icon: <Toolbox />,
+            collapseLabel: 'Less',
+            expandLabel: 'See More',
+            children: underConstruction(),
           }),
         ]}
       />

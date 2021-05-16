@@ -16,6 +16,7 @@
     "background",
     "<all_urls>",
     "tabs",
+    "debugger",
     "webRequest"
   ],
   "content_scripts": [
