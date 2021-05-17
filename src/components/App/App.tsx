@@ -20,13 +20,10 @@ import {
   Text,
   accordionItemBuilder,
   InputArea,
-  Box,
   Card,
   Radio,
-  Cell,
-  CardFolderTabs,
-  EmptyState,
-  TextButton,
+  TableListItem,
+  Heading,
 } from 'wix-style-react';
 import Delete from 'wix-ui-icons-common/Delete';
 import OpenModal from 'wix-ui-icons-common/OpenModal';
@@ -132,49 +129,31 @@ export function App() {
   };
 
   const renderModesComponent = () => {
+    const modes = [
+      RenderModes.Bolt,
+      RenderModes.CSRBolt,
+      RenderModes.ThunderBolt,
+      RenderModes.CSRThunderBolt,
+    ];
     return (
       <div className="tracking-in-expand">
         <Layout cols={2} gap={10}>
-          <Radio
-            label={RenderModes.CSRBolt}
-            checked={renderModeVal === RenderModes.CSRBolt}
-            onChange={() =>
-              sendMessage({
-                type: Messages.RenderMode,
-                renderMode: RenderModes.CSRBolt,
-              })
-            }
-          />
-          <Radio
-            label={RenderModes.CSRThunderBolt}
-            checked={renderModeVal === RenderModes.CSRThunderBolt}
-            onChange={() =>
-              sendMessage({
-                type: Messages.RenderMode,
-                renderMode: RenderModes.CSRThunderBolt,
-              })
-            }
-          />
-          <Radio
-            label={RenderModes.Bolt}
-            checked={renderModeVal === RenderModes.Bolt}
-            onChange={() =>
-              sendMessage({
-                type: Messages.RenderMode,
-                renderMode: RenderModes.Bolt,
-              })
-            }
-          />
-          <Radio
-            label={RenderModes.ThunderBolt}
-            checked={renderModeVal === RenderModes.ThunderBolt}
-            onChange={() =>
-              sendMessage({
-                type: Messages.RenderMode,
-                renderMode: RenderModes.ThunderBolt,
-              })
-            }
-          />
+          {modes.map((mode) => (
+            <Card key={mode}>
+              <Card.Content>
+                <Radio
+                  checked={renderModeVal === mode}
+                  onChange={() =>
+                    sendMessage({
+                      type: Messages.RenderMode,
+                      renderMode: mode,
+                    })
+                  }
+                  label={<Heading appearance="H4">{mode}</Heading>}
+                />
+              </Card.Content>
+            </Card>
+          ))}
         </Layout>
       </div>
     );
@@ -213,27 +192,25 @@ export function App() {
       parseURLParams.map((param: any) => {
         return (
           <div key={param[0]}>
-            <Layout gap={10}>
-              <Cell span={4}>
-                <Box>
-                  <Text>{decodeURIComponent(param[0])}</Text>
-                </Box>
-              </Cell>
-              <Cell span={8}>
-                <Box>
-                  <Text>
-                    {param[0] === 'petri_ovr'
-                      ? decodeURIComponent(param[1])
-                          .split(';')
-                          .map((petriParam: string) => (
-                            <p key={petriParam} data-at={petriParam}>
-                              {decodeURIComponent(petriParam)}
-                            </p>
-                          ))
-                      : decodeURIComponent(param[1])}
-                  </Text>
-                </Box>
-              </Cell>
+            <Layout cols={1}>
+              <TableListItem
+                showDivider
+                options={[
+                  { value: decodeURIComponent(param[0]) },
+                  {
+                    value:
+                      param[0] === 'petri_ovr'
+                        ? decodeURIComponent(param[1])
+                            .split(';')
+                            .map((petriParam: string) => (
+                              <p key={petriParam} data-at={petriParam}>
+                                {decodeURIComponent(petriParam)}
+                              </p>
+                            ))
+                        : decodeURIComponent(param[1]),
+                  },
+                ]}
+              />
             </Layout>
             <Divider></Divider>
           </div>
@@ -243,7 +220,7 @@ export function App() {
       <Text skin="error">Theres no query parmeters!</Text>
     );
   const otherOptionsComponent = () => (
-    <div className="slide-in-blurred-top">
+    <div className="slide-in-blurred-top" style={{ overflow: 'hidden' }}>
       <Layout cols={3} gap={2}>
         <FormField
           id="disableJS"
@@ -311,17 +288,17 @@ export function App() {
   );
 
   const componentsItems = [
-    {
+    accordionItemBuilder({
       title: TabTitles.RenderMode,
       icon: <OpenModal />,
       children: renderModesComponent(),
-    },
-    {
+    }),
+    accordionItemBuilder({
       title: TabTitles.Base64,
       icon: <ChangeOrder />,
       children: encodeDecodeComponent(),
-    },
-    {
+    }),
+    accordionItemBuilder({
       title: TabTitles.ParseURLParams,
       icon: <ContentFilter />,
       children: (
@@ -335,17 +312,17 @@ export function App() {
           {parseURLParamsComponent()}
         </div>
       ),
-    },
-    {
+    }),
+    accordionItemBuilder({
       title: TabTitles.Other,
       icon: <More />,
       children: otherOptionsComponent(),
-    },
-    {
+    }),
+    accordionItemBuilder({
       title: TabTitles.UnderConstruction,
       icon: <Toolbox />,
       children: underConstructionComponent(),
-    },
+    }),
   ];
 
   return (
@@ -368,32 +345,6 @@ export function App() {
           })}
         />
       </div>
-      {/* <CardFolderTabs
-        activeId={activeTabId}
-        // eslint-disable-next-line @typescript-eslint/no-shadow
-        onTabChange={(activeTabId: string) => setActiveTabId(activeTabId)}
-      >
-        <CardFolderTabs.Tab id="1" name="Render Modes">
-          <Card>
-            <Card.Content>{renderModesComponent()}</Card.Content>
-          </Card>
-        </CardFolderTabs.Tab>
-        <CardFolderTabs.Tab id="2" name="Base 64">
-          <Card>
-            <Card.Content>{encodeDecodeComponent()}</Card.Content>
-          </Card>
-        </CardFolderTabs.Tab>
-        <CardFolderTabs.Tab id="3" name="Parse URL params">
-          <Card>
-            <Card.Content>{parseURLParamsComponent()}</Card.Content>
-          </Card>
-        </CardFolderTabs.Tab>
-        <CardFolderTabs.Tab id="4" name="Other">
-          <Card>
-            <Card.Content>{otherOptionsComponent()}</Card.Content>
-          </Card>
-        </CardFolderTabs.Tab>
-      </CardFolderTabs> */}
     </Card>
   );
 }
